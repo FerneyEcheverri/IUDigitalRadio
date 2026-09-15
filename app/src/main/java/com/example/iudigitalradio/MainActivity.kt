@@ -71,10 +71,12 @@ val TextGray = Color(0xFFA0A0AB)
 
 // Lista de emisoras simuladas para el catálogo con ID, Nombre, Género y Enlace de Streaming
 val sampleStations = listOf(
-    Station(1, "Logo Emi 1", "Live • Pop", "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"),
-    Station(2, "Logo Emi 2", "Live • Noticias", "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"),
-    Station(3, "Logo Emi 3", "Live • Rock", "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"),
-    Station(4, "Logo Emi 4", "Live • Jazz", "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3")
+    Station(1, "Caracol Radio", "100.9 FM / 810 AM • Noticias", "https://playerservices.streamtheworld.com/api/livestream-redirect/CARACOL_RADIOAAC.aac"),
+    Station(2, "Olímpica Stereo", "104.9 FM", "https://playerservices.streamtheworld.com/api/livestream-redirect/OLP_MEDELLINAAC.aac"),
+    Station(3, "Mix (Medellín)", "Live • Rock", "https://playerservices.streamtheworld.com/api/livestream-redirect/MIX_MEDELLINAAC.aac"),
+    Station(4, "Los 40 Principales", " Popular", "https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_COLOMBIAAAC_SC"),
+    Station(5, "Salsa Capital", "SALSA", "https://stream.integracionvirtual.com/proxy/capitalsalsa?mp=/stream"),
+    Station(6, "Baladas Rs", "BALADAS", "https://stream.zeno.fm/fxzt1r5rp2zuv")
 )
 
 // =========================================================================
@@ -273,50 +275,82 @@ fun ProfileHeader(
     bitmap: Bitmap?,             // Foto tomada (si existe)
     onTakePhoto: () -> Unit      // Evento al presionar el botón de foto
 ) {
-    // Row: distribuye sus elementos horizontalmente en una misma fila
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween, // Separa los extremos de la fila
-        verticalAlignment = Alignment.CenterVertically    // Centra el contenido verticalmente
+    Card(
+        colors = CardDefaults.cardColors(containerColor = DarkCard),
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        // Columna izquierda: foto redonda de perfil
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (bitmap != null) {
-                // Muestra la imagen capturada por el usuario
-                Image(
-                    bitmap = bitmap.asImageBitmap(),     // Convierte el mapa de bits a imagen de Compose
-                    contentDescription = "Foto de perfil",
-                    modifier = Modifier
-                        .size(56.dp)                      // Tamaño de 56x56 dp
-                        .clip(CircleShape),               // Recorta la imagen en forma circular
-                    contentScale = ContentScale.Crop      // Escala la foto rellenando el círculo
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Columna izquierda: Avatar del usuario
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Foto de perfil",
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF3A3A48)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "👤", fontSize = 24.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = "Foto", color = TextGray, fontSize = 11.sp)
+            }
+
+            // Columna central: Nombre y Estado del oyente
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp)
+            ) {
+                Text(
+                    text = "Oyente IU Digital",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
                 )
-            } else {
-                // Muestra un círculo gris por defecto si no hay foto cargada
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Estado: Conectado",
+                    color = TextGray,
+                    fontSize = 12.sp
                 )
             }
-            // Etiqueta de texto debajo de la imagen
-            Text(text = "Foto", color = TextGray, fontSize = 12.sp)
-        }
 
-        // Botón derecho para solicitar permiso y abrir la cámara
-        Button(
-            onClick = onTakePhoto,
-            colors = ButtonDefaults.buttonColors(containerColor = DarkCard), // Fondo de tarjeta oscura
-            shape = RoundedCornerShape(24.dp)                                // Bordes redondeados
-        ) {
-            Text(text = "📅 📷 Registro Jornal • Foto", color = Color.White)
+            // Botón derecho: Acción de la cámara con fondo morado
+            IconButton(
+                onClick = onTakePhoto,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(PurpleAccent)
+            ) {
+                Text(text = "📷", fontSize = 20.sp)
+            }
         }
     }
 }
-
 // =========================================================================
 // SECCIÓN 2: TARJETA DEL REPRODUCTOR EN VIVO
+// =========================================================================
+
+// =========================================================================
+// SECCIÓN 2: TARJETA DEL REPRODUCTOR EN VIVO (DISEÑO RADIO)
 // =========================================================================
 
 @Composable
@@ -325,77 +359,103 @@ fun PlayerCardSection(
     isPlaying: Boolean,           // Estado de reproducción
     onPlayToggle: () -> Unit      // Acción de reproducir/pausar
 ) {
-    // Card: contenedor con estilo de tarjeta elevada
     Card(
         colors = CardDefaults.cardColors(containerColor = DarkCard),
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Fila superior: botón de reproducción grande e información de la emisora
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Botón circular morado
-                Surface(
-                    shape = CircleShape,
-                    color = PurpleAccent,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clickable { onPlayToggle() } // Escucha el toque del usuario
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        // Cambia el ícono entre Pausa y Reproducción según el estado
-                        Text(
-                            text = if (isPlaying) "❚❚" else "▶",
-                            color = Color.White,
-                            fontSize = 24.sp
-                        )
-                    }
-                }
-
-                // Información textual de la emisora activa
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "${station.name} ((•))",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Ahora en vivo • Radio Emi",
-                        color = TextGray,
-                        fontSize = 13.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Fila inferior: minireproductor con onda de audio decorativa
+            // Fila superior: Botón Play, Datos de la emisora y Badge "EN VIVO"
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Botón pequeño de control secundario
-                IconButton(
-                    onClick = onPlayToggle,
+                // Botón principal de reproducción
+                Surface(
+                    shape = CircleShape,
+                    color = PurpleAccent,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF2C2C36))
+                        .size(56.dp)
+                        .clickable { onPlayToggle() }
                 ) {
-                    Text(text = if (isPlaying) "❚❚" else "▶", color = Color.White)
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (isPlaying) "❚❚" else "▶",
+                            color = Color.White,
+                            fontSize = 22.sp
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(text = "00:12 / 02:45", color = TextGray, fontSize = 11.sp)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    // Representación gráfica simulada de la onda de sonido
-                    Text(text = "ııılıılııııılıılııııılııııılıı", color = PurpleAccent, fontSize = 14.sp)
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                // Información textual de la emisora
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = station.name,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = station.frequency,
+                        color = TextGray,
+                        fontSize = 13.sp
+                    )
                 }
+
+                // Indicador dinámico de EN VIVO / PAUSA
+                Surface(
+                    color = if (isPlaying) Color(0xFFE53935) else Color(0xFF3E3E4A),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isPlaying) "EN VIVO" else "PAUSA",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Fila inferior: Estado de transmisión y Onda de audio
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF252530))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (isPlaying) "📡 Transmitiendo señal..." else "⏸️ En espera",
+                        color = TextGray,
+                        fontSize = 12.sp
+                    )
+                }
+                Text(
+                    text = if (isPlaying) "ııılıılııııılıılııı" else "─────────────",
+                    color = if (isPlaying) PurpleAccent else TextGray,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
