@@ -319,7 +319,7 @@ fun ProfileHeader(
                     .padding(horizontal = 16.dp)
             ) {
                 Text(
-                    text = "Oyente IU Digital",
+                    text = "Oyente",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
