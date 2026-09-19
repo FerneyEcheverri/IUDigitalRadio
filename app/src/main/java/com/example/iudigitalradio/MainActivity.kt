@@ -117,6 +117,8 @@ class MainActivity : ComponentActivity() {
 fun RadioAppUI() {
     // Obtiene el contexto actual del sistema operativo para acceder a servicios nativos
     val context = LocalContext.current
+    // Convierte el contexto genérico en ComponentActivity para poder cerrar la aplicación nativamente
+    val activity = context as? ComponentActivity
 
     // Detecta si la pantalla se está dibujando en el editor de vista previa de Android Studio
     val isPreview = LocalInspectionMode.current
@@ -172,6 +174,7 @@ fun RadioAppUI() {
     LaunchedEffect(isMuted) {
         exoPlayer?.volume = if (isMuted) 0f else 1f
     }
+
     // Busca en la lista de emisoras cuál coincide con el ID seleccionado actualmente
     val currentStation = sampleStations.find { it.id == selectedStationId } ?: sampleStations[0]
 
@@ -272,6 +275,16 @@ fun RadioAppUI() {
                     exoPlayer?.play()
                     isPlaying = true
                 }
+            },
+            onExitClick = {
+                // Ejecuta respuesta háptica al presionar el botón de Salir
+                if (!isPreview) triggerVibration(context)
+
+                // 1. Detiene la transmisión de audio para liberar el reproductor
+                exoPlayer?.stop()
+
+                // 2. Finaliza la actividad actual y remueve la app del menú de multitarea
+                activity?.finishAndRemoveTask()
             },
             modifier = Modifier.align(Alignment.BottomCenter) // Alinea la barra al fondo central
         )
@@ -494,115 +507,6 @@ fun PlayerCardSection(
         }
     }
 }
-
-/*@Composable
-fun PlayerCardSection(
-    station: Station,             // Emisora actual en pantalla
-    isPlaying: Boolean,           // Estado de reproducción
-    onPlayToggle: () -> Unit      // Acción de reproducir/pausar
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = DarkCard),
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Fila superior: Botón Play, Datos de la emisora y Badge "EN VIVO"
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Botón principal de reproducción
-                Surface(
-                    shape = CircleShape,
-                    color = PurpleAccent,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clickable { onPlayToggle() }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = if (isPlaying) "❚❚" else "▶",
-                            color = Color.White,
-                            fontSize = 22.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(14.dp))
-
-                // Información textual de la emisora
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = station.name,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = station.frequency,
-                        color = TextGray,
-                        fontSize = 13.sp
-                    )
-                }
-
-                // Indicador dinámico de EN VIVO / PAUSA
-                Surface(
-                    color = if (isPlaying) Color(0xFFE53935) else Color(0xFF3E3E4A),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (isPlaying) "EN VIVO" else "PAUSA",
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Fila inferior: Estado de transmisión y Onda de audio
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF252530))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = if (isPlaying) "📡 Transmitiendo señal..." else "⏸️ En espera",
-                        color = TextGray,
-                        fontSize = 12.sp
-                    )
-                }
-                Text(
-                    text = if (isPlaying) "ııılıılııııılıılııı" else "─────────────",
-                    color = if (isPlaying) PurpleAccent else TextGray,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}*/
-
 // =========================================================================
 // SECCIÓN 3: CATÁLOGO DE EMISORAS EN CUADRÍCULA (LAZYCOLUMN)
 // =========================================================================
@@ -610,7 +514,7 @@ fun PlayerCardSection(
 
 @Composable
 fun CatalogList(
-    selectedStationId: Int,             // ID de la emisora seleccionada actualmente
+    selectedStationId: Int,             // id de la emisora seleccionada actualmente
     onStationSelect: (Station) -> Unit  // Acción a ejecutar al presionar una emisora
 ) {
     // LazyColumn: renderiza eficientemente los elementos en una lista vertical
@@ -679,70 +583,6 @@ fun CatalogList(
         }
     }
 }
-
-/*@Composable
-fun CatalogGrid(
-    selectedStationId: Int,                  // ID de la estación seleccionada actualmente
-    onStationSelect: (Station) -> Unit       // Acción al hacer clic sobre una tarjeta de estación
-) {
-    // LazyVerticalGrid: dibuja eficientemente elementos en formato de cuadrícula (2 columnas)
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),                         // Define exactamente 2 columnas
-        horizontalArrangement = Arrangement.spacedBy(12.dp),  // Espaciado entre columnas
-        verticalArrangement = Arrangement.spacedBy(12.dp),    // Espaciado entre filas
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        // Mapea la lista de emisoras a tarjetas individuales
-        items(sampleStations) { station ->
-            // Evalúa si la estación de esta tarjeta es la activa para cambiar su color de fondo
-            val isSelected = station.id == selectedStationId
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isSelected) Color(0xFF2B2B36) else DarkCard
-                ),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(110.dp)
-                    .clickable { onStationSelect(station) } // Asigna la emisora seleccionada
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    // Ícono cuadrado distintivo de la emisora
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF2C2C38)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "EMi", color = Color(0xFF8E8E9A), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // Nombre de la emisora
-                    Text(
-                        text = station.name,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    // Categoría o género musical
-                    Text(
-                        text = station.frequency,
-                        color = TextGray,
-                        fontSize = 11.sp
-                    )
-                }
-            }
-        }
-    }
-}*/
-
 // =========================================================================
 // SECCIÓN 4: BARRA DE NAVEGACIÓN FLOTANTE INFERIOR
 // =========================================================================
@@ -751,6 +591,7 @@ fun CatalogGrid(
 fun BottomNavigationBar(
     isPlaying: Boolean,           // Estado de reproducción
     onPlayClick: () -> Unit,      // Acción al pulsar el botón central
+    onExitClick: () -> Unit,      // Acción a ejecutar al presionar el botón de Salir
     modifier: Modifier = Modifier
 ) {
     // Surface: barra contenedora fija en la parte inferior
@@ -767,10 +608,16 @@ fun BottomNavigationBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Opción Salir
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "📁 ", fontSize = 16.sp)
-                Text(text = "Salir", color = Color.White, fontSize = 14.sp)
+            // Opción Salir / Apagar
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onExitClick() }// Invoca el evento de salida recibido por parámetro
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "\uD83D\uDCF4 ", fontSize = 16.sp)
+                Text(text = "Cerrar App", color = Color.White, fontSize = 14.sp)
             }
 
             // Botón Flotante Central "Reproducir / Pausa"
