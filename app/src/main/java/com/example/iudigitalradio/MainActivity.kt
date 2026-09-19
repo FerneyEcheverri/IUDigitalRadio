@@ -674,7 +674,7 @@ fun BottomNavigationBar(
     }
 }
 
-// Buscador funcional sobre las emisoras que ya existen, lista
+// Buscador funcional sobre las emisoras que ya existen, lista.
 
 @Composable
 fun StationSearchDialog(
