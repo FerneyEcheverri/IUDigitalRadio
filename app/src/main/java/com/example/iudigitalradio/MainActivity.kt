@@ -170,6 +170,9 @@ fun RadioAppUI() {
     // Estado guardable para controlar si el reproductor está silenciado
     var isMuted by rememberSaveable { mutableStateOf(false) }
 
+    // Controla únicamente la apertura del buscador de emisoras.
+    var showSearchDialog by rememberSaveable { mutableStateOf(false) }
+
     // LaunchedEffect para actualizar el volumen del reproductor cuando cambia el estado isMuted
     LaunchedEffect(isMuted) {
         exoPlayer?.volume = if (isMuted) 0f else 1f
@@ -185,7 +188,7 @@ fun RadioAppUI() {
             val mediaItem = MediaItem.fromUri(currentStation.streamUrl) // Convierte la URL a item ejecutable
             exoPlayer.setMediaItem(mediaItem)                            // Asigna la emisora al reproductor
             exoPlayer.prepare()                                          // Prepara el búfer de reproducción
-            if (isPlaying) exoPlayer.play()                              // Inicia el sonido si el estado es 'reproduciendo'
+            exoPlayer.playWhenReady = isPlaying                          // Mantiene correctamente reproducción/pausa
         }
     }
 
@@ -224,7 +227,13 @@ fun RadioAppUI() {
                         exoPlayer?.pause()
                         isPlaying = false
                     } else {
-                        exoPlayer?.play()
+                        // Vuelve a preparar la emisora actual antes de reproducir.
+                        // Esto permite recuperar el audio si el stream quedó detenido o dio error temporal.
+                        exoPlayer?.apply {
+                            setMediaItem(MediaItem.fromUri(currentStation.streamUrl))
+                            prepare()
+                            playWhenReady = true
+                        }
                         isPlaying = true
                     }
                 },
@@ -286,8 +295,24 @@ fun RadioAppUI() {
                 // 2. Finaliza la actividad actual y remueve la app del menú de multitarea
                 activity?.finishAndRemoveTask()
             },
+            onSearchClick = {
+                if (!isPreview) triggerVibration(context)
+                showSearchDialog = true
+            },
             modifier = Modifier.align(Alignment.BottomCenter) // Alinea la barra al fondo central
         )
+
+        if (showSearchDialog) {
+            StationSearchDialog(
+                stations = sampleStations,
+                onDismiss = { showSearchDialog = false },
+                onStationSelect = { station ->
+                    selectedStationId = station.id
+                    isPlaying = true
+                    showSearchDialog = false
+                }
+            )
+        }
     }
 }
 
@@ -592,6 +617,7 @@ fun BottomNavigationBar(
     isPlaying: Boolean,           // Estado de reproducción
     onPlayClick: () -> Unit,      // Acción al pulsar el botón central
     onExitClick: () -> Unit,      // Acción a ejecutar al presionar el botón de Salir
+    onSearchClick: () -> Unit,    // Acción al pulsar Buscar
     modifier: Modifier = Modifier
 ) {
     // Surface: barra contenedora fija en la parte inferior
@@ -636,13 +662,78 @@ fun BottomNavigationBar(
                 Text(text = "Reproducir", color = TextGray, fontSize = 10.sp)
             }
 
-            // Opción Buscar
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Opción Buscar. Conserva exactamente la misma apariencia; solo se agrega la acción.
+            Row(
+                modifier = Modifier.clickable { onSearchClick() },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(text = "🔍 ", fontSize = 16.sp)
                 Text(text = "Buscar", color = Color.White, fontSize = 14.sp)
             }
         }
     }
+}
+
+// Buscador funcional sobre las emisoras que ya existen, lista
+
+@Composable
+fun StationSearchDialog(
+    stations: List<Station>,
+    onDismiss: () -> Unit,
+    onStationSelect: (Station) -> Unit
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val filteredStations = remember(query, stations) {
+        val text = query.trim()
+        if (text.isEmpty()) stations
+        else stations.filter { station ->
+            station.name.contains(text, ignoreCase = true) ||
+                    station.frequency.contains(text, ignoreCase = true)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Buscar emisora") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("Nombre o género") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyColumn(modifier = Modifier.heightIn(max = 280.dp)) {
+                    items(filteredStations, key = { it.id }) { station ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onStationSelect(station) }
+                                .padding(vertical = 10.dp)
+                        ) {
+                            Text(station.name, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(station.frequency, color = TextGray, fontSize = 12.sp)
+                        }
+                    }
+                    if (filteredStations.isEmpty()) {
+                        item {
+                            Text(
+                                "No se encontraron emisoras",
+                                color = TextGray,
+                                modifier = Modifier.padding(vertical = 12.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cerrar") }
+        }
+    )
 }
 
 // =========================================================================
