@@ -22,12 +22,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+//import androidx.compose.foundation.lazy.grid.GridCells
+//import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+//import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 // Importaciones de Material Design 3 (Botones, Tarjetas, Temas)
 import androidx.compose.material3.*
 
@@ -164,6 +165,13 @@ fun RadioAppUI() {
     // Estado guardable: controla si la música se encuentra en reproducción o pausada
     var isPlaying by rememberSaveable { mutableStateOf(false) }
 
+    // Estado guardable para controlar si el reproductor está silenciado
+    var isMuted by rememberSaveable { mutableStateOf(false) }
+
+    // LaunchedEffect para actualizar el volumen del reproductor cuando cambia el estado isMuted
+    LaunchedEffect(isMuted) {
+        exoPlayer?.volume = if (isMuted) 0f else 1f
+    }
     // Busca en la lista de emisoras cuál coincide con el ID seleccionado actualmente
     val currentStation = sampleStations.find { it.id == selectedStationId } ?: sampleStations[0]
 
@@ -205,6 +213,7 @@ fun RadioAppUI() {
             PlayerCardSection(
                 station = currentStation,
                 isPlaying = isPlaying,
+                isMuted = isMuted,
                 onPlayToggle = {
                     if (!isPreview) triggerVibration(context) // Vibración háptica
                     // Alterna entre reproducir y pausar el audio
@@ -215,6 +224,9 @@ fun RadioAppUI() {
                         exoPlayer?.play()
                         isPlaying = true
                     }
+                },
+                onMuteToggle = {
+                    isMuted = !isMuted
                 }
             )
 
@@ -238,7 +250,7 @@ fun RadioAppUI() {
             Spacer(modifier = Modifier.height(12.dp))
 
             // Cuadrícula con la lista de emisoras disponibles
-            CatalogGrid(
+            CatalogList(
                 selectedStationId = selectedStationId,
                 onStationSelect = { station ->
                     if (!isPreview) triggerVibration(context) // Vibración háptica
@@ -346,14 +358,144 @@ fun ProfileHeader(
     }
 }
 // =========================================================================
-// SECCIÓN 2: TARJETA DEL REPRODUCTOR EN VIVO
-// =========================================================================
-
-// =========================================================================
 // SECCIÓN 2: TARJETA DEL REPRODUCTOR EN VIVO (DISEÑO RADIO)
 // =========================================================================
-
+// @Composable: dibuja la tarjeta del reproductor central con sus controles interactivos
 @Composable
+fun PlayerCardSection(
+    station: Station,             // Emisora actual en pantalla
+    isPlaying: Boolean,           // Estado de reproducción (reproduciendo / pausado)
+    isMuted: Boolean,             // Estado de silencio (muteado / con sonido)
+    onPlayToggle: () -> Unit,      // Acción al presionar el botón de reproducción/pausa
+    onMuteToggle: () -> Unit       // Acción al presionar el botón de silencio (mute)
+) {
+    // Obtiene el contexto para ejecutar la vibración háptica al presionar el botón de Mute
+    val context = LocalContext.current
+    val isPreview = LocalInspectionMode.current
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = DarkCard),
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Fila superior: Botón Play, Datos de la emisora, Badge "EN VIVO" y Botón Mute
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Botón principal de reproducción
+                Surface(
+                    shape = CircleShape,
+                    color = PurpleAccent,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clickable { onPlayToggle() }
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (isPlaying) "❚❚" else "▶",
+                            color = Color.White,
+                            fontSize = 22.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                // Información textual de la emisora
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = station.name,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = station.frequency,
+                        color = TextGray,
+                        fontSize = 13.sp
+                    )
+                }
+
+                // Indicador dinámico de EN VIVO / PAUSA
+                Surface(
+                    color = if (isPlaying) Color(0xFFE53935) else Color(0xFF3E3E4A),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isPlaying) "EN VIVO" else "PAUSA",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Espaciador horizontal entre el indicador EN VIVO y el botón de silencio
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Botón interactivo de Mute / Silencio
+                IconButton(
+                    onClick = {
+                        if (!isPreview) triggerVibration(context) // Ejecuta la vibración háptica al pulsar
+                        onMuteToggle()                           // Invoca la acción de alternar silencio
+                    },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(if (isMuted) Color(0xFFE53935) else Color(0xFF252530)) // Destaca en rojo si está muteado
+                ) {
+                    Text(
+                        text = if (isMuted) "🔇" else "🔊",       // Ícono dinámico según el estado del volumen
+                        fontSize = 16.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Fila inferior: Estado de transmisión y Onda de audio
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF252530))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (isMuted) "🔇 Audio silenciado" else if (isPlaying) "📡 Transmitiendo señal..." else "⏸️ En espera",
+                        color = TextGray,
+                        fontSize = 12.sp
+                    )
+                }
+                Text(
+                    text = if (isPlaying && !isMuted) "ııılıılııııılıılııı" else "─────────────",
+                    color = if (isPlaying && !isMuted) PurpleAccent else TextGray,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+/*@Composable
 fun PlayerCardSection(
     station: Station,             // Emisora actual en pantalla
     isPlaying: Boolean,           // Estado de reproducción
@@ -459,13 +601,86 @@ fun PlayerCardSection(
             }
         }
     }
-}
+}*/
 
 // =========================================================================
-// SECCIÓN 3: CATÁLOGO DE EMISORAS EN CUADRÍCULA
+// SECCIÓN 3: CATÁLOGO DE EMISORAS EN CUADRÍCULA (LAZYCOLUMN)
 // =========================================================================
+// @Composable: dibuja el catálogo optimizado en formato de lista deslizable vertical
 
 @Composable
+fun CatalogList(
+    selectedStationId: Int,             // ID de la emisora seleccionada actualmente
+    onStationSelect: (Station) -> Unit  // Acción a ejecutar al presionar una emisora
+) {
+    // LazyColumn: renderiza eficientemente los elementos en una lista vertical
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(10.dp), // Espaciado vertical entre tarjetas
+        modifier = Modifier.fillMaxWidth()                  // Ocupa todo el ancho disponible
+    ) {
+        // Recorre la lista de emisoras y genera una tarjeta para cada una
+        items(sampleStations) { station ->
+            // Determina si la emisora actual de la iteración es la que está seleccionada
+            val isSelected = station.id == selectedStationId
+
+            // Tarjeta contenedora de la emisora
+            Card(
+                colors = CardDefaults.cardColors(
+                    // Cambia el color de fondo si la emisora está activa
+                    containerColor = if (isSelected) Color(0xFF2B2B36) else DarkCard
+                ),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onStationSelect(station) } // Asigna la emisora al presionar
+            ) {
+                // Fila principal: Organiza el ícono, los textos y el indicador horizontalmente
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically // Alinea los elementos al centro vertical
+                ) {
+                    // Ícono representativo de la emisora
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF2C2C38)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "📻", fontSize = 18.sp)
+                    }
+
+                    // Separador horizontal de 12 píxeles de densidad
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Columna central: Nombre y frecuencia/género de la emisora
+                    Column(modifier = Modifier.weight(1f)) { // Ocupa el espacio restante disponible
+                        Text(
+                            text = station.name,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Text(
+                            text = station.frequency,
+                            color = TextGray,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    // Indicador visual opcional si la emisora es la que está reproduciéndose
+                    if (isSelected) {
+                        Text(text = "▶", color = PurpleAccent, fontSize = 16.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/*@Composable
 fun CatalogGrid(
     selectedStationId: Int,                  // ID de la estación seleccionada actualmente
     onStationSelect: (Station) -> Unit       // Acción al hacer clic sobre una tarjeta de estación
@@ -526,7 +741,7 @@ fun CatalogGrid(
             }
         }
     }
-}
+}*/
 
 // =========================================================================
 // SECCIÓN 4: BARRA DE NAVEGACIÓN FLOTANTE INFERIOR
