@@ -77,7 +77,8 @@ val sampleStations = listOf(
     Station(3, "Mix (Medellín)", "Live • Rock", "https://playerservices.streamtheworld.com/api/livestream-redirect/MIX_MEDELLINAAC.aac"),
     Station(4, "Los 40 Principales", " Popular", "https://playerservices.streamtheworld.com/api/livestream-redirect/LOS40_COLOMBIAAAC_SC"),
     Station(5, "Salsa Capital", "SALSA", "https://stream.integracionvirtual.com/proxy/capitalsalsa?mp=/stream"),
-    Station(6, "Baladas Rs", "BALADAS", "https://stream.zeno.fm/fxzt1r5rp2zuv")
+    Station(6, "Baladas Rs", "BALADAS", "https://stream.zeno.fm/fxzt1r5rp2zuv"),
+    Station(7, "Conexión K-Pop", "K-POP", "https://conexionkpop.stream.laut.fm/conexionkpop")
 )
 
 // =========================================================================
