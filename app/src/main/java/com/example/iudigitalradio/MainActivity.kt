@@ -21,6 +21,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 //import androidx.compose.foundation.lazy.grid.GridCells
 //import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -200,6 +202,7 @@ fun RadioAppUI() {
         Column(
             modifier = Modifier
                 .fillMaxSize()                                   // Ocupa toda la pantalla
+                .verticalScroll(rememberScrollState())            // Permite desplazar toda la pantalla también al girar el móvil
                 .padding(horizontal = 16.dp, vertical = 12.dp)  // Márgenes laterales y verticales
                 .padding(bottom = 80.dp)                         // Espacio libre para no tapar con la barra inferior
         ) {
@@ -264,6 +267,7 @@ fun RadioAppUI() {
 
             // Cuadrícula con la lista de emisoras disponibles
             CatalogList(
+                modifier = Modifier.fillMaxWidth(),
                 selectedStationId = selectedStationId,
                 onStationSelect = { station ->
                     if (!isPreview) triggerVibration(context) // Vibración háptica
@@ -540,16 +544,19 @@ fun PlayerCardSection(
 
 @Composable
 fun CatalogList(
+    modifier: Modifier = Modifier,
     selectedStationId: Int,             // id de la emisora seleccionada actualmente
     onStationSelect: (Station) -> Unit  // Acción a ejecutar al presionar una emisora
 ) {
-    // LazyColumn: renderiza eficientemente los elementos en una lista vertical
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(10.dp), // Espaciado vertical entre tarjetas
-        modifier = Modifier.fillMaxWidth()                  // Ocupa todo el ancho disponible
+    // El desplazamiento lo controla la pantalla principal completa.
+    // Así, al girar el móvil, cabecera, reproductor y emisoras se pueden recorrer con el dedo
+    // sin crear dos contenedores de scroll vertical compitiendo entre sí.
+    Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.fillMaxWidth()
     ) {
         // Recorre la lista de emisoras y genera una tarjeta para cada una
-        items(sampleStations) { station ->
+        sampleStations.forEach { station ->
             // Determina si la emisora actual de la iteración es la que está seleccionada
             val isSelected = station.id == selectedStationId
 
