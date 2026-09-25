@@ -12,7 +12,7 @@ El objetivo principal del proyecto fue poner en práctica los conocimientos adqu
 
 Para el desarrollo de la aplicación, el equipo implementó los requerimientos establecidos en la guía:
 
-* **Cero XML:** Toda la interfaz gráfica fue desarrollada utilizando **Jetpack Compose**, mediante programación declarativa en Kotlin y java con componentes como `Column`, `Row`, `Card`, entre otros.
+* **Cero XML:** Toda la interfaz gráfica fue desarrollada utilizando **Jetpack Compose**, mediante programación declarativa en Kotlin con componentes como `Column`, `Row`, `Card`, entre otros.
 * **Cámara integrada:** En la parte superior de la aplicación se encuentra un botón que solicita los permisos necesarios para utilizar la cámara, permitiendo tomar una fotografía y establecerla como imagen de perfil.
 * **Vibración (Háptica):** Al interactuar con los botones de **Play, Pausa y Silencio**, el dispositivo genera una pequeña vibración como respuesta háptica para indicar la interacción del usuario.
 * **Manejo del estado:** Al cambiar la orientación del dispositivo, la reproducción continúa sin pausarse y se conserva la emisora seleccionada. Para esto se utilizaron herramientas de manejo de estado como `mutableStateOf` y `rememberSaveable`.
@@ -21,7 +21,7 @@ Para el desarrollo de la aplicación, el equipo implementó los requerimientos e
 
 ## 💻 Herramientas utilizadas
 
-* **Lenguaje:** Kotlin + java
+* **Lenguaje:** Kotlin
 * **Interfaz:** Jetpack Compose
 * **Multimedia:** Media3 ExoPlayer para la reproducción de audio.
 * **Cámara y permisos:** `ActivityResultContracts`
